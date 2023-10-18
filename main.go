@@ -6,12 +6,16 @@ import (
 	"strings"
 )
 
-func write_wrapper(output_file *os.File, airport_code string, rwy_name string, sid_name string, fixs string) {
+func write_wrapper(output_file *os.File, airport_code string, rwy_name string, sid_name string, fixs string, sid_trans string) {
 	output_file.WriteString(airport_code)
 	output_file.WriteString(":")
 	output_file.WriteString(rwy_name)
 	output_file.WriteString(":")
-	output_file.WriteString(sid_name)
+	if sid_trans != "" {
+		output_file.WriteString(sid_name + "." + sid_trans)
+	} else {
+		output_file.WriteString(sid_name)
+	}
 	output_file.WriteString(":")
 	output_file.WriteString(fixs)
 	output_file.WriteString("\n")
@@ -71,7 +75,7 @@ func all_rwy_star(output_file *os.File, airport_code string, star_name string, f
 	var i = 0
 	for i < len(airport_rwys[airport_code]) {
 		output_file.WriteString("STAR:")
-		write_wrapper(output_file, airport_code, airport_rwys[airport_code][i], star_name, fixs)
+		write_wrapper(output_file, airport_code, airport_rwys[airport_code][i], star_name, fixs, "")
 		i++
 	}
 }
@@ -102,6 +106,7 @@ func main() {
 		}
 		if strings.HasPrefix(line, "[RJ") || strings.HasPrefix(line, "[RO") {
 			airport_code := line[1:5]
+			sid_trans := line[strings.LastIndexByte(line, '/')+1 : len(line)-1]
 			var rwy_name string
 			if strings.HasPrefix(line[13:], "ALL") {
 				rwy_name = line[13 : 13+strings.IndexRune(line[13:], ' ')]
@@ -123,7 +128,7 @@ func main() {
 			}
 			fixs = strings.ReplaceAll(fixs, ",", " ")
 			output_file.WriteString("SID:")
-			write_wrapper(output_file, airport_code, rwy_name, sid_name, fixs)
+			write_wrapper(output_file, airport_code, rwy_name, sid_name, fixs, sid_trans)
 		}
 	}
 	star_scanner := bufio.NewScanner(star_dat)
@@ -157,7 +162,7 @@ func main() {
 			if !strings.HasPrefix(rwy_name, "ALL") {
 				fixs = strings.ReplaceAll(fixs, ",", " ")
 				output_file.WriteString("STAR:")
-				write_wrapper(output_file, airport_code, rwy_name, star_name, fixs)
+				write_wrapper(output_file, airport_code, rwy_name, star_name, fixs, "")
 			} else {
 				all_rwy_star(output_file, airport_code, star_name, fixs)
 			}
